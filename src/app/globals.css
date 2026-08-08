@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+:root {
+  --nx-bg: #0b0b0b;
+  --nx-bg-elevated: #141414;
+  --nx-bg-card: #1f1f1f;
+  --nx-red: #e50914;
+  --nx-red-dark: #b20710;
+  --nx-text: #f5f5f1;
+  --nx-text-muted: #a3a3a3;
+  --background: var(--nx-bg);
+  --foreground: var(--nx-text);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-nx-bg: var(--nx-bg);
+  --color-nx-bg-elevated: var(--nx-bg-elevated);
+  --color-nx-bg-card: var(--nx-bg-card);
+  --color-nx-red: var(--nx-red);
+  --color-nx-red-dark: var(--nx-red-dark);
+  --color-nx-text: var(--nx-text);
+  --color-nx-text-muted: var(--nx-text-muted);
+  --font-sans: var(--font-inter);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Hide scrollbars for horizontal carousels while keeping scroll functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Slim, dark themed scrollbar for the app shell */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--nx-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nx-red);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.4s ease forwards;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, #1a1a1a 0%, #262626 40%, #1a1a1a 80%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+.text-shadow {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+.mask-fade-bottom {
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+}
