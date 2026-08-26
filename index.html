@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Cofres — Controle Financeiro</title>
+  <meta name="description" content="Controle financeiro pessoal offline com cofres automáticos: despesas, investimentos, dízimo, responsabilidade social e fundo de emergência." />
+  <meta name="theme-color" content="#0B1F3A" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Cofres" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div class="app-header__title">
+        <span class="app-header__logo" aria-hidden="true">🏦</span>
+        <div>
+          <h1>Cofres</h1>
+          <p class="app-header__subtitle">Controle financeiro pessoal</p>
+        </div>
+      </div>
+      <div class="app-header__balance">
+        <span class="label">Saldo total</span>
+        <strong id="total-balance">R$ 0,00</strong>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- INÍCIO -->
+      <section class="view" id="view-home" data-view="home">
+        <div class="quick-actions">
+          <button class="quick-actions__btn quick-actions__btn--in" data-open-tx="entrada">
+            <span aria-hidden="true">⬇️</span> Entrada
+          </button>
+          <button class="quick-actions__btn quick-actions__btn--out" data-open-tx="saida">
+            <span aria-hidden="true">⬆️</span> Saída
+          </button>
+          <button class="quick-actions__btn quick-actions__btn--transfer" data-open-tx="transferencia">
+            <span aria-hidden="true">⇄</span> Transferir
+          </button>
+        </div>
+
+        <h2 class="section-title">Meus cofres</h2>
+        <div id="vaults-grid" class="vaults-grid"></div>
+
+        <div class="section-title-row">
+          <h2 class="section-title">Últimos lançamentos</h2>
+          <button class="link-btn" data-nav="reports">ver tudo</button>
+        </div>
+        <div id="recent-transactions" class="tx-list"></div>
+      </section>
+
+      <!-- RELATÓRIOS -->
+      <section class="view hidden" id="view-reports" data-view="reports">
+        <div class="card">
+          <div class="month-picker">
+            <button id="month-prev" class="icon-btn" aria-label="Mês anterior">‹</button>
+            <strong id="month-label">—</strong>
+            <button id="month-next" class="icon-btn" aria-label="Próximo mês">›</button>
+          </div>
+          <div class="summary-grid">
+            <div class="summary-item summary-item--in">
+              <span class="label">Entradas</span>
+              <strong id="summary-income">R$ 0,00</strong>
+            </div>
+            <div class="summary-item summary-item--out">
+              <span class="label">Saídas</span>
+              <strong id="summary-expense">R$ 0,00</strong>
+            </div>
+            <div class="summary-item">
+              <span class="label">Saldo do mês</span>
+              <strong id="summary-net">R$ 0,00</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Entradas x Saídas (6 meses)</h2>
+          <canvas id="chart-trend" class="chart-canvas"></canvas>
+          <div class="legend-row">
+            <span class="legend-dot" style="--dot:#4C9F70"></span> Entradas
+            <span class="legend-dot" style="--dot:#EF6C61"></span> Saídas
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Distribuição por cofre</h2>
+          <div class="donut-row">
+            <canvas id="chart-vaults" class="chart-canvas chart-canvas--donut"></canvas>
+            <div id="donut-legend" class="donut-legend"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title-row">
+            <h2 class="section-title">Extrato</h2>
+            <button id="btn-export-csv" class="link-btn">exportar CSV</button>
+          </div>
+          <div class="filters">
+            <select id="filter-vault" aria-label="Filtrar por cofre">
+              <option value="">Todos os cofres</option>
+            </select>
+            <select id="filter-type" aria-label="Filtrar por tipo">
+              <option value="">Todos os tipos</option>
+              <option value="entrada">Entradas</option>
+              <option value="saida">Saídas</option>
+              <option value="transferencia">Transferências</option>
+            </select>
+            <input id="filter-search" type="search" placeholder="Buscar descrição…" aria-label="Buscar descrição" />
+          </div>
+          <div id="extrato-list" class="tx-list"></div>
+        </div>
+      </section>
+
+      <!-- COFRES -->
+      <section class="view hidden" id="view-vaults" data-view="vaults">
+        <div class="card">
+          <h2 class="section-title">Percentuais de divisão automática</h2>
+          <p class="hint">Toda vez que você registra uma <strong>entrada</strong>, o valor é dividido automaticamente entre os cofres abaixo. A soma precisa dar 100%.</p>
+          <form id="form-percentages"></form>
+          <div id="percent-total-row" class="percent-total-row">
+            <span>Total:</span>
+            <strong id="percent-total">100%</strong>
+          </div>
+          <button type="submit" form="form-percentages" class="btn btn--primary btn--block">Salvar percentuais</button>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Detalhe dos cofres</h2>
+          <div id="vaults-detail-list"></div>
+        </div>
+      </section>
+
+      <!-- CONFIG -->
+      <section class="view hidden" id="view-config" data-view="config">
+        <div class="card">
+          <h2 class="section-title">📲 Instalar no celular</h2>
+          <p class="hint">
+            No Android/Chrome: menu (⋮) → <strong>"Instalar aplicativo"</strong> ou "Adicionar à tela inicial".<br />
+            No iPhone/Safari: toque em Compartilhar (□↑) → <strong>"Adicionar à Tela de Início"</strong>.<br />
+            O app funciona <strong>offline</strong> depois de aberto uma vez.
+          </p>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">💾 Backup dos dados</h2>
+          <p class="hint">Seus dados ficam salvos só neste aparelho/navegador. Exporte um backup regularmente para não perder nada.</p>
+          <button id="btn-export-backup" class="btn btn--primary btn--block">Exportar backup (JSON)</button>
+          <label class="btn btn--secondary btn--block" style="margin-top:8px; text-align:center;">
+            Importar backup (JSON)
+            <input id="input-import-backup" type="file" accept="application/json" hidden />
+          </label>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">🙏 Sobre a divisão dos cofres</h2>
+          <p class="hint">
+            <strong>50% Despesas</strong> — seu custo de vida.<br />
+            <strong>20% Investimentos</strong> — construção de patrimônio.<br />
+            <strong>10% Dízimo</strong> — contribuição.<br />
+            <strong>10% Responsabilidade Social</strong> — doações e causas.<br />
+            <strong>10% Fundo de Emergência</strong> — reserva para imprevistos.<br />
+            Você pode ajustar esses percentuais na aba <strong>Cofres</strong>.
+          </p>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">⚠️ Zona de risco</h2>
+          <button id="btn-reset-all" class="btn btn--danger btn--block">Apagar todos os dados</button>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" id="bottom-nav">
+      <button class="bottom-nav__btn active" data-nav="home">
+        <span aria-hidden="true">🏠</span><small>Início</small>
+      </button>
+      <button class="bottom-nav__btn" data-nav="reports">
+        <span aria-hidden="true">📊</span><small>Relatórios</small>
+      </button>
+      <button class="bottom-nav__btn" data-nav="vaults">
+        <span aria-hidden="true">🧩</span><small>Cofres</small>
+      </button>
+      <button class="bottom-nav__btn" data-nav="config">
+        <span aria-hidden="true">⚙️</span><small>Config</small>
+      </button>
+    </nav>
+
+    <button id="fab-add" class="fab" aria-label="Novo lançamento">+</button>
+  </div>
+
+  <!-- MODAL: novo lançamento -->
+  <div class="modal-overlay hidden" id="modal-tx">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-tx-title">
+      <div class="modal__header">
+        <h2 id="modal-tx-title">Novo lançamento</h2>
+        <button class="icon-btn" id="modal-tx-close" aria-label="Fechar">✕</button>
+      </div>
+      <div class="segmented" id="tx-type-segmented">
+        <button type="button" class="segmented__btn active" data-type="entrada">Entrada</button>
+        <button type="button" class="segmented__btn" data-type="saida">Saída</button>
+        <button type="button" class="segmented__btn" data-type="transferencia">Transferir</button>
+      </div>
+      <form id="form-tx">
+        <label class="field">
+          <span>Valor (R$)</span>
+          <input type="text" inputmode="decimal" id="tx-amount" placeholder="0,00" required />
+        </label>
+        <label class="field">
+          <span>Data</span>
+          <input type="date" id="tx-date" required />
+        </label>
+        <label class="field">
+          <span>Descrição</span>
+          <input type="text" id="tx-description" placeholder="Ex: Supermercado, Salário…" />
+        </label>
+
+        <div id="tx-field-category" class="field-group">
+          <label class="field">
+            <span>Categoria</span>
+            <input type="text" id="tx-category" list="category-options" placeholder="Ex: Alimentação" />
+            <datalist id="category-options"></datalist>
+          </label>
+        </div>
+
+        <div id="tx-field-vault" class="field-group hidden">
+          <label class="field">
+            <span>Cofre de origem</span>
+            <select id="tx-vault"></select>
+          </label>
+        </div>
+
+        <div id="tx-field-transfer" class="field-group hidden">
+          <label class="field">
+            <span>De</span>
+            <select id="tx-from-vault"></select>
+          </label>
+          <label class="field">
+            <span>Para</span>
+            <select id="tx-to-vault"></select>
+          </label>
+        </div>
+
+        <div id="tx-split-preview" class="split-preview hidden"></div>
+
+        <p class="field-error hidden" id="tx-form-error"></p>
+
+        <button type="submit" class="btn btn--primary btn--block">Salvar lançamento</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/vaults.js"></script>
+  <script src="js/transactions.js"></script>
+  <script src="js/reports.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
