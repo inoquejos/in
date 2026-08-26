@@ -29,6 +29,10 @@ jobs:
 
       - name: Configura o GitHub Pages
         uses: actions/configure-pages@v5
+        with:
+          # cria o site do Pages automaticamente se ainda não existir
+          # (por padrão o action não cria, só configura um já existente)
+          enablement: true
 
       - name: Empacota o site (raiz do repo, sem build)
         uses: actions/upload-pages-artifact@v3
