@@ -97,6 +97,70 @@
     });
   }
 
+  /** series: [{ color, points: [{ label, value }] }] — valores em reais, não centavos. */
+  function drawLineChart(canvas, series, opts) {
+    opts = opts || {};
+    const cssHeight = opts.height || 180;
+    const { ctx, width, height } = setupCanvas(canvas, cssHeight);
+    ctx.clearRect(0, 0, width, height);
+
+    const n = (series[0] && series[0].points.length) || 0;
+    if (!n) return;
+
+    const padding = { top: 12, right: 8, bottom: 24, left: 8 };
+    const chartW = width - padding.left - padding.right;
+    const chartH = height - padding.top - padding.bottom;
+
+    const allValues = series.flatMap((s) => s.points.map((p) => p.value));
+    const minVal = Math.min(0, ...allValues);
+    const maxVal = Math.max(1, ...allValues);
+    const range = maxVal - minVal || 1;
+    const stepX = n > 1 ? chartW / (n - 1) : 0;
+    const yFor = (v) => padding.top + chartH - ((v - minVal) / range) * chartH;
+
+    // linha de base (zero), se houver valores negativos
+    if (minVal < 0) {
+      ctx.strokeStyle = opts.zeroColor || 'rgba(128,128,128,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, yFor(0));
+      ctx.lineTo(padding.left + chartW, yFor(0));
+      ctx.stroke();
+    }
+
+    series.forEach((s) => {
+      if (!s.points.length) return;
+      ctx.beginPath();
+      s.points.forEach((p, i) => {
+        const x = padding.left + stepX * i;
+        const y = yFor(p.value);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      s.points.forEach((p, i) => {
+        const x = padding.left + stepX * i;
+        const y = yFor(p.value);
+        ctx.beginPath();
+        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = s.color;
+        ctx.fill();
+      });
+    });
+
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.fillStyle = opts.textColor || '#8a93a6';
+    ctx.textAlign = 'center';
+    series[0].points.forEach((p, i) => {
+      const x = padding.left + stepX * i;
+      ctx.fillText(p.label, x, height - 6);
+    });
+  }
+
   global.CofresApp = global.CofresApp || {};
-  global.CofresApp.charts = { drawDonut, drawBarChart };
+  global.CofresApp.charts = { drawDonut, drawBarChart, drawLineChart };
 })(window);

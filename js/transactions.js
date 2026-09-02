@@ -38,7 +38,7 @@
     if (!date) throw new Error('Informe uma data.');
   }
 
-  function addIncome(state, { amountCents, date, description, category }) {
+  function addIncome(state, { amountCents, date, description, category, note }) {
     validateCommon({ amountCents, date });
     const tx = {
       id: uid(),
@@ -47,6 +47,7 @@
       date,
       description: description || 'Entrada',
       category: category || 'Renda',
+      note: note || '',
       createdAt: new Date().toISOString(),
     };
     applyEffect(state, tx);
@@ -54,7 +55,7 @@
     return tx;
   }
 
-  function addExpense(state, { amountCents, date, description, category, vaultId }) {
+  function addExpense(state, { amountCents, date, description, category, vaultId, note }) {
     validateCommon({ amountCents, date });
     if (!vaultId) throw new Error('Selecione de qual cofre sai o valor.');
     const tx = {
@@ -65,6 +66,7 @@
       description: description || 'Saída',
       category: category || 'Outros',
       vaultId,
+      note: note || '',
       createdAt: new Date().toISOString(),
     };
     applyEffect(state, tx);
@@ -72,7 +74,7 @@
     return tx;
   }
 
-  function addTransfer(state, { amountCents, date, description, fromVaultId, toVaultId }) {
+  function addTransfer(state, { amountCents, date, description, fromVaultId, toVaultId, note }) {
     validateCommon({ amountCents, date });
     if (!fromVaultId || !toVaultId) throw new Error('Selecione os cofres de origem e destino.');
     if (fromVaultId === toVaultId) throw new Error('Escolha cofres diferentes para a transferência.');
@@ -85,6 +87,7 @@
       category: 'Transferência',
       fromVaultId,
       toVaultId,
+      note: note || '',
       createdAt: new Date().toISOString(),
     };
     applyEffect(state, tx);
@@ -100,7 +103,7 @@
     return true;
   }
 
-  /** patch pode conter: amountCents, date, description, category, vaultId, fromVaultId, toVaultId */
+  /** patch pode conter: amountCents, date, description, category, note, vaultId, fromVaultId, toVaultId */
   function updateTransaction(state, txId, patch) {
     const tx = state.transactions.find((t) => t.id === txId);
     if (!tx) throw new Error('Lançamento não encontrado.');

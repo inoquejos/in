@@ -288,6 +288,15 @@ select {
   border: 1px solid var(--border);
 }
 
+.tx-item--clickable {
+  cursor: pointer;
+}
+
+.tx-item--clickable:hover,
+.tx-item--clickable:focus-visible {
+  border-color: var(--accent);
+}
+
 .tx-item__icon {
   width: 34px;
   height: 34px;
@@ -453,6 +462,108 @@ select {
   align-items: center;
   gap: 6px;
   color: var(--text-muted);
+}
+
+.report-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ---------- Evolução dos cofres (legenda) ---------- */
+.trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.trend-legend strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Metas por categoria ---------- */
+.budgets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.budget-row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.budget-row:last-child {
+  border-bottom: none;
+}
+
+.budget-row__top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.budget-row__name {
+  font-weight: 600;
+}
+
+.budget-row__values {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-row__values.over {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.budget-row__bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.budget-row__bar-fill {
+  height: 100%;
+  background: var(--accent);
+}
+
+.budget-row__bar-fill.over {
+  background: var(--danger);
+}
+
+.budget-row__delete {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 4px 0 0;
+  cursor: pointer;
+}
+
+.budget-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.budget-form input {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.budget-form button {
+  grid-column: 1 / -1;
 }
 
 .filters {
@@ -746,6 +857,11 @@ select {
   box-shadow: var(--shadow);
 }
 
+.segmented__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -756,13 +872,16 @@ select {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   padding: 10px 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--bg);
   font-size: 14px;
   color: var(--text);
+  font-family: inherit;
+  resize: vertical;
 }
 
 .field-group.hidden {
@@ -816,4 +935,68 @@ select {
 
 .toast.hidden {
   display: none;
+}
+
+/* ---------- Impressão / exportar PDF ---------- */
+.print-only {
+  display: none;
+}
+
+@media print {
+  .app-header,
+  .bottom-nav,
+  .fab,
+  .modal-overlay,
+  .toast {
+    display: none !important;
+  }
+
+  #main {
+    padding: 0;
+  }
+
+  .view {
+    display: none !important;
+  }
+
+  #view-reports {
+    display: block !important;
+  }
+
+  .month-picker button,
+  .filters,
+  .report-actions,
+  .budget-form,
+  .budget-row__delete,
+  .link-btn {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  .print-only h1 {
+    font-size: 18px;
+    margin: 0 0 4px;
+  }
+
+  .print-only p {
+    margin: 0;
+    color: #555;
+    font-size: 12px;
+  }
+
+  body,
+  #app {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+    break-inside: avoid;
+  }
 }

@@ -4,12 +4,13 @@
 (function () {
   'use strict';
 
-  const { storage, util, vaults: vaultsApi, transactions: txApi, reports, charts, ui } = window.CofresApp;
+  const { storage, util, vaults: vaultsApi, transactions: txApi, budgets: budgetsApi, reports, charts, ui } = window.CofresApp;
 
   let state = storage.loadState();
   let currentView = 'home';
   let currentReportMonth = util.monthKey(util.todayISO());
   let currentTxType = 'entrada';
+  let editingTxId = null;
 
   // ---------- referências DOM ----------
   const $ = (id) => document.getElementById(id);
@@ -25,10 +26,19 @@
   const chartTrendEl = $('chart-trend');
   const chartVaultsEl = $('chart-vaults');
   const donutLegendEl = $('donut-legend');
+  const chartVaultsTrendEl = $('chart-vaults-trend');
+  const vaultsTrendLegendEl = $('vaults-trend-legend');
+  const printGeneratedAtEl = $('print-generated-at');
   const filterVaultEl = $('filter-vault');
   const filterTypeEl = $('filter-type');
   const filterSearchEl = $('filter-search');
   const extratoListEl = $('extrato-list');
+
+  const budgetsListEl = $('budgets-list');
+  const formBudgetEl = $('form-budget');
+  const budgetCategoryEl = $('budget-category');
+  const budgetCategoryOptionsEl = $('budget-category-options');
+  const budgetLimitEl = $('budget-limit');
 
   const percentFormEl = $('form-percentages');
   const percentTotalRowEl = $('percent-total-row');
@@ -40,6 +50,7 @@
   const txAmountEl = $('tx-amount');
   const txDateEl = $('tx-date');
   const txDescriptionEl = $('tx-description');
+  const txNoteEl = $('tx-note');
   const txCategoryEl = $('tx-category');
   const categoryOptionsEl = $('category-options');
   const txFieldCategoryEl = $('tx-field-category');
@@ -50,6 +61,8 @@
   const txToVaultEl = $('tx-to-vault');
   const txSplitPreviewEl = $('tx-split-preview');
   const txFormErrorEl = $('tx-form-error');
+  const txEditHintEl = $('tx-edit-hint');
+  const txSubmitBtnEl = $('tx-submit-btn');
 
   // ---------- persistência ----------
   function persist() {
@@ -61,7 +74,11 @@
     ui.renderHeaderBalance(vaultsApi.totalBalance(state), totalBalanceEl);
     ui.renderVaultsGrid(vaultsGridEl, state);
     const recent = txApi.listTransactions(state).slice(0, 5);
-    ui.renderTxList(recentTxEl, recent, state, { onDelete: handleDeleteTx, emptyMessage: 'Nenhum lançamento ainda. Toque em "+" para começar.' });
+    ui.renderTxList(recentTxEl, recent, state, {
+      onDelete: handleDeleteTx,
+      onEdit: openEditTxModal,
+      emptyMessage: 'Nenhum lançamento ainda. Toque em "+" para começar.',
+    });
   }
 
   function currentExtratoFilters() {
@@ -95,9 +112,35 @@
     );
     ui.renderDonutLegend(donutLegendEl, distribution);
 
+    const vaultTrend = reports.vaultBalanceTrend(state, 6);
+    charts.drawLineChart(
+      chartVaultsTrendEl,
+      vaultTrend.map((v) => ({
+        color: v.color,
+        points: v.series.map((s) => ({ label: s.label.slice(0, 3), value: s.balanceCents / 100 })),
+      }))
+    );
+    ui.renderLineLegend(vaultsTrendLegendEl, vaultTrend);
+
+    ui.populateCategoryDatalist(budgetCategoryOptionsEl, state, 'saida');
+    ui.renderBudgetsList(budgetsListEl, budgetsApi.progress(state, currentReportMonth), handleDeleteBudget);
+
+    printGeneratedAtEl.textContent = `${summary.label} — gerado em ${util.formatDateBR(util.todayISO())}`;
+
     ui.populateVaultSelect(filterVaultEl, state, { includeEmpty: true, emptyLabel: 'Todos os cofres' });
     const filtered = txApi.listTransactions(state, currentExtratoFilters());
-    ui.renderTxList(extratoListEl, filtered, state, { onDelete: handleDeleteTx, emptyMessage: 'Nenhum lançamento neste período/filtro.' });
+    ui.renderTxList(extratoListEl, filtered, state, {
+      onDelete: handleDeleteTx,
+      onEdit: openEditTxModal,
+      emptyMessage: 'Nenhum lançamento neste período/filtro.',
+    });
+  }
+
+  function handleDeleteBudget(category) {
+    budgetsApi.remove(state, category);
+    persist();
+    renderReportsView();
+    ui.showToast('Meta removida.');
   }
 
   function renderVaultsView() {
@@ -173,19 +216,51 @@
     txFormErrorEl.classList.remove('hidden');
   }
 
+  function setSegmentedEditable(editable) {
+    document.querySelectorAll('#tx-type-segmented .segmented__btn').forEach((b) => {
+      b.disabled = !editable;
+    });
+    txEditHintEl.classList.toggle('hidden', editable);
+  }
+
   function openTxModal(type) {
     // não usa formTxEl.reset(): ele colapsaria os <select> pra primeira opção
     // (não têm atributo "selected") e a lógica de repopulação abaixo passaria
     // a "preservar" esse valor errado em vez de aplicar o default pretendido.
+    editingTxId = null;
     txAmountEl.value = '';
     txDescriptionEl.value = '';
+    txNoteEl.value = '';
     txCategoryEl.value = '';
     txDateEl.value = util.todayISO();
+    txSubmitBtnEl.textContent = 'Salvar lançamento';
     hideFormError();
     populateModalSelectsAndCategories();
+    setSegmentedEditable(true);
     setTxType(type || 'entrada');
     ui.openModal(modalTxEl);
     setTimeout(() => txAmountEl.focus(), 50);
+  }
+
+  function openEditTxModal(tx) {
+    editingTxId = tx.id;
+    txAmountEl.value = (tx.amountCents / 100).toFixed(2).replace('.', ',');
+    txDateEl.value = tx.date;
+    txDescriptionEl.value = tx.description || '';
+    txNoteEl.value = tx.note || '';
+    txCategoryEl.value = tx.category || '';
+    txSubmitBtnEl.textContent = 'Salvar alterações';
+    hideFormError();
+    populateModalSelectsAndCategories();
+    setSegmentedEditable(false);
+    setTxType(tx.type);
+    $('modal-tx-title').textContent = 'Editar lançamento';
+    if (tx.type === 'saida') txVaultEl.value = tx.vaultId;
+    if (tx.type === 'transferencia') {
+      txFromVaultEl.value = tx.fromVaultId;
+      txToVaultEl.value = tx.toVaultId;
+    }
+    ui.openModal(modalTxEl);
   }
 
   function closeTxModal() {
@@ -214,12 +289,24 @@
     const date = txDateEl.value;
     const description = txDescriptionEl.value.trim();
     const category = txCategoryEl.value.trim();
+    const note = txNoteEl.value.trim();
 
     try {
-      if (currentTxType === 'entrada') {
-        txApi.addIncome(state, { amountCents, date, description, category });
+      if (editingTxId) {
+        const patch = { amountCents, date, description, category, note };
+        if (currentTxType === 'saida') patch.vaultId = txVaultEl.value;
+        if (currentTxType === 'transferencia') {
+          patch.fromVaultId = txFromVaultEl.value;
+          patch.toVaultId = txToVaultEl.value;
+        }
+        txApi.updateTransaction(state, editingTxId, patch);
+        ui.showToast('Lançamento atualizado ✅');
+      } else if (currentTxType === 'entrada') {
+        txApi.addIncome(state, { amountCents, date, description, category, note });
+        ui.showToast('Lançamento salvo ✅');
       } else if (currentTxType === 'saida') {
-        txApi.addExpense(state, { amountCents, date, description, category, vaultId: txVaultEl.value });
+        txApi.addExpense(state, { amountCents, date, description, category, vaultId: txVaultEl.value, note });
+        ui.showToast('Lançamento salvo ✅');
       } else {
         txApi.addTransfer(state, {
           amountCents,
@@ -227,12 +314,13 @@
           description,
           fromVaultId: txFromVaultEl.value,
           toVaultId: txToVaultEl.value,
+          note,
         });
+        ui.showToast('Lançamento salvo ✅');
       }
       persist();
       closeTxModal();
       renderAll();
-      ui.showToast('Lançamento salvo ✅');
     } catch (err) {
       showFormError(err.message || 'Não foi possível salvar o lançamento.');
     }
@@ -271,6 +359,25 @@
     }
     const csv = reports.transactionsToCSV(state, filtered);
     util.downloadFile(`extrato-cofres-${currentReportMonth}.csv`, csv, 'text/csv;charset=utf-8');
+  });
+
+  $('btn-export-pdf').addEventListener('click', () => {
+    window.print();
+  });
+
+  // ---------- relatórios: metas por categoria ----------
+  formBudgetEl.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    try {
+      const limitCents = util.parseAmountToCents(budgetLimitEl.value);
+      budgetsApi.upsert(state, budgetCategoryEl.value, limitCents);
+      persist();
+      formBudgetEl.reset();
+      renderReportsView();
+      ui.showToast('Meta salva ✅');
+    } catch (err) {
+      ui.showToast(err.message || 'Não foi possível salvar a meta.');
+    }
   });
 
   window.addEventListener('resize', debounce(() => {

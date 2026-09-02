@@ -70,14 +70,27 @@
       const item = el('div', 'tx-item');
       const sign = t.type === 'saida' ? '−' : t.type === 'entrada' ? '+' : '';
       const amountClass = t.type === 'entrada' ? 'in' : t.type === 'saida' ? 'out' : 'transfer';
+      const metaText = `${formatDateBR(t.date)} · ${escapeHtml(t.category || '')}${t.note ? ' · 📝' : ''}`;
       item.innerHTML = `
         <div class="tx-item__icon">${txIconFor(t, state)}</div>
         <div class="tx-item__body">
           <div class="tx-item__desc">${escapeHtml(txDescriptionFor(t, state))}</div>
-          <div class="tx-item__meta">${formatDateBR(t.date)} · ${escapeHtml(t.category || '')}</div>
+          <div class="tx-item__meta">${metaText}</div>
         </div>
         <div class="tx-item__amount ${amountClass}">${sign}${centsToBRL(t.amountCents)}</div>
       `;
+      if (opts.onEdit) {
+        item.classList.add('tx-item--clickable');
+        item.setAttribute('role', 'button');
+        item.setAttribute('tabindex', '0');
+        item.addEventListener('click', () => opts.onEdit(t));
+        item.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' || ev.key === ' ') {
+            ev.preventDefault();
+            opts.onEdit(t);
+          }
+        });
+      }
       if (opts.onDelete) {
         const delBtn = el('button', 'tx-item__delete', '🗑');
         delBtn.type = 'button';
@@ -184,6 +197,43 @@
       .join('');
   }
 
+  function renderLineLegend(container, trendVaults) {
+    container.innerHTML = trendVaults
+      .map((v) => {
+        const last = v.series[v.series.length - 1];
+        const balance = last ? centsToBRL(last.balanceCents) : centsToBRL(0);
+        return `<span><span class="legend-dot" style="--dot:${v.color}"></span>${v.icon} ${v.name} <strong>${balance}</strong></span>`;
+      })
+      .join('');
+  }
+
+  function renderBudgetsList(container, progressList, onDelete) {
+    container.innerHTML = '';
+    if (!progressList.length) {
+      container.appendChild(el('div', 'empty-state', 'Nenhuma meta cadastrada ainda.'));
+      return;
+    }
+    progressList.forEach((b) => {
+      const over = b.pct >= 100;
+      const row = el('div', 'budget-row');
+      row.innerHTML = `
+        <div class="budget-row__top">
+          <span class="budget-row__name">${escapeHtml(b.category)}</span>
+          <span class="budget-row__values ${over ? 'over' : ''}">${centsToBRL(b.spentCents)} / ${centsToBRL(b.limitCents)}</span>
+        </div>
+        <div class="budget-row__bar"><div class="budget-row__bar-fill ${over ? 'over' : ''}" style="width:${Math.min(100, b.pct)}%"></div></div>
+      `;
+      if (onDelete) {
+        const delBtn = el('button', 'budget-row__delete', '🗑 remover meta');
+        delBtn.type = 'button';
+        delBtn.setAttribute('aria-label', 'Excluir meta de ' + b.category);
+        delBtn.addEventListener('click', () => onDelete(b.category));
+        row.appendChild(delBtn);
+      }
+      container.appendChild(row);
+    });
+  }
+
   function showToast(message, ms) {
     const toastEl = document.getElementById('toast');
     if (!toastEl) return;
@@ -214,6 +264,8 @@
     renderPercentForm,
     renderVaultsDetail,
     renderDonutLegend,
+    renderLineLegend,
+    renderBudgetsList,
     showToast,
     openModal,
     closeModal,

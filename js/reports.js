@@ -72,6 +72,56 @@
     });
   }
 
+  /**
+   * Reconstrói o saldo de cada cofre ao final de cada um dos últimos n meses,
+   * repetindo o histórico de lançamentos em ordem cronológica. Serve para o
+   * gráfico de "Evolução dos cofres".
+   */
+  function vaultBalanceTrend(state, n) {
+    n = n || 6;
+    const now = new Date();
+    const months = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+
+    const sorted = state.transactions.slice().sort((a, b) => {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return (a.createdAt || '').localeCompare(b.createdAt || '');
+    });
+
+    const balances = {};
+    const series = {};
+    state.vaults.forEach((v) => {
+      balances[v.id] = 0;
+      series[v.id] = [];
+    });
+
+    let idx = 0;
+    months.forEach((mk) => {
+      while (idx < sorted.length && monthKey(sorted[idx].date) <= mk) {
+        const t = sorted[idx];
+        if (t.type === 'entrada') {
+          (t.splits || []).forEach((s) => {
+            if (balances[s.vaultId] != null) balances[s.vaultId] += s.cents;
+          });
+        } else if (t.type === 'saida') {
+          if (balances[t.vaultId] != null) balances[t.vaultId] -= t.amountCents;
+        } else if (t.type === 'transferencia') {
+          if (balances[t.fromVaultId] != null) balances[t.fromVaultId] -= t.amountCents;
+          if (balances[t.toVaultId] != null) balances[t.toVaultId] += t.amountCents;
+        }
+        idx++;
+      }
+      state.vaults.forEach((v) => {
+        series[v.id].push({ monthKey: mk, label: monthLabel(mk), balanceCents: balances[v.id] });
+      });
+    });
+
+    return state.vaults.map((v) => ({ id: v.id, name: v.name, color: v.color, icon: v.icon, series: series[v.id] }));
+  }
+
   function vaultDistribution(state) {
     const total = state.vaults.reduce((acc, v) => acc + Math.max(0, v.balanceCents), 0);
     return state.vaults.map((v) => ({
@@ -86,7 +136,7 @@
   }
 
   function transactionsToCSV(state, txs) {
-    const header = ['Data', 'Tipo', 'Descrição', 'Categoria', 'Cofre', 'Valor (R$)'];
+    const header = ['Data', 'Tipo', 'Descrição', 'Categoria', 'Cofre', 'Valor (R$)', 'Observações'];
     const rows = txs.map((t) => {
       let vaultCol = '';
       if (t.type === 'saida') vaultCol = vaultLabel(state, t.vaultId);
@@ -97,7 +147,7 @@
       const sinal = t.type === 'saida' ? -1 : 1;
       const valor = ((t.amountCents * sinal) / 100).toFixed(2).replace('.', ',');
 
-      return [formatDateBR(t.date), tipoLabel, t.description, t.category, vaultCol, valor];
+      return [formatDateBR(t.date), tipoLabel, t.description, t.category, vaultCol, valor, t.note || ''];
     });
     const lines = [header, ...rows].map((row) => row.map(escapeCSV).join(';'));
     return '﻿' + lines.join('\r\n'); // BOM pra abrir certo em Excel com acentos
@@ -108,6 +158,7 @@
     monthsAvailable,
     monthlySummary,
     monthlyTrend,
+    vaultBalanceTrend,
     vaultDistribution,
     transactionsToCSV,
   };

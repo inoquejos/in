@@ -5,7 +5,7 @@
  * IMPORTANTE: ao adicionar/renomear arquivos estáticos, atualize APP_SHELL
  * abaixo e suba a versão do cache (CACHE_NAME) para forçar atualização.
  */
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `cofres-shell-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -17,6 +17,7 @@ const APP_SHELL = [
   './js/util.js',
   './js/vaults.js',
   './js/transactions.js',
+  './js/budgets.js',
   './js/reports.js',
   './js/charts.js',
   './js/ui.js',

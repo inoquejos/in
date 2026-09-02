@@ -18,11 +18,17 @@ percentuais podem ser ajustados na aba **Cofres**, desde que a soma dê 100%.
 
 ## Funcionalidades
 
-- **Lançamentos**: entradas, saídas (por cofre) e transferências entre cofres.
+- **Lançamentos**: entradas, saídas (por cofre) e transferências entre cofres,
+  com descrição, categoria e **observações** livres para cada um. Lançamentos
+  podem ser **editados** (toque no item da lista) ou excluídos a qualquer momento.
 - **Dashboard**: saldo total, saldo de cada cofre, últimos lançamentos.
+- **Metas por categoria**: defina um limite mensal de gasto por categoria
+  (ex: "Alimentação até R$ 800") e acompanhe o progresso com barra visual.
 - **Relatórios**: resumo mensal (entradas/saídas/saldo), gráfico de tendência
-  dos últimos 6 meses, gráfico de distribuição por cofre, extrato filtrável
-  por cofre/tipo/descrição e **exportação em CSV**.
+  dos últimos 6 meses, gráfico de distribuição por cofre, **gráfico de
+  evolução do saldo de cada cofre** (últimos 6 meses), extrato filtrável
+  por cofre/tipo/descrição, **exportação em CSV** e **exportação em PDF**
+  (via impressão do navegador — funciona 100% offline).
 - **Backup/restauração** dos dados em JSON (os dados ficam só no seu
   aparelho — não há servidor nem nuvem).
 - **Offline-first**: depois de aberto uma vez, funciona sem internet.
@@ -68,8 +74,9 @@ js/
   util.js                formatação de moeda/data, parsing, download de arquivo
   vaults.js              regras dos cofres: split automático, transferência
   transactions.js        CRUD de lançamentos (mantém saldos dos cofres consistentes)
-  reports.js              agregações (resumo mensal, tendência, CSV)
-  charts.js                gráficos em <canvas>, sem libs externas
+  budgets.js              metas de gasto por categoria (limite + progresso mensal)
+  reports.js              agregações (resumo mensal, tendência, evolução dos cofres, CSV)
+  charts.js                gráficos em <canvas>, sem libs externas (barra, donut, linha)
   ui.js                     funções de renderização (DOM)
   app.js                    controlador: liga estado + eventos + telas
 icons/                  ícones do PWA (192, 512, maskable)
@@ -93,6 +100,6 @@ node tools/generate-icons.js
 
 ## Próximos passos sugeridos
 
-- Editar um lançamento existente (hoje: excluir e lançar de novo).
-- Metas por categoria dentro do cofre de Despesas.
-- Gráfico de evolução do saldo de cada cofre ao longo do tempo.
+- Lançamentos recorrentes (ex: assinaturas mensais lançadas automaticamente).
+- Múltiplas contas/carteiras (ex: conta corrente + carteira em dinheiro).
+- Sincronização opcional entre aparelhos (hoje os dados são só locais).

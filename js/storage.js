@@ -7,7 +7,7 @@
   'use strict';
 
   const STORAGE_KEY = 'cofres:v1';
-  const SCHEMA_VERSION = 1;
+  const SCHEMA_VERSION = 2; // v2: adiciona state.budgets (metas por categoria)
 
   function uid() {
     return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
@@ -68,6 +68,7 @@
       schemaVersion: SCHEMA_VERSION,
       vaults: defaultVaults(),
       transactions: [],
+      budgets: [], // metas por categoria: [{ category, limitCents }]
       settings: {
         currency: 'BRL',
         createdAt: new Date().toISOString(),
@@ -102,6 +103,7 @@
     try {
       const parsed = JSON.parse(raw);
       if (!parsed.vaults || !parsed.transactions) throw new Error('estrutura inválida');
+      if (!Array.isArray(parsed.budgets)) parsed.budgets = []; // migração de dados salvos antes da v2
       return parsed;
     } catch (e) {
       console.error('Falha ao ler dados salvos, iniciando estado novo.', e);
@@ -140,6 +142,7 @@
       schemaVersion: parsed.schemaVersion || SCHEMA_VERSION,
       vaults: parsed.vaults,
       transactions: parsed.transactions,
+      budgets: Array.isArray(parsed.budgets) ? parsed.budgets : [],
       settings: parsed.settings || { currency: 'BRL', createdAt: new Date().toISOString() },
     };
     saveState(state);
